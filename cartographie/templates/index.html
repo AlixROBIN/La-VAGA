@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carte Interactive</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'cartographie/styles.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.css" />
+</head>
+<body>
+    <h1>Carte Interactive</h1>
+    <button id="toggle-legend">Afficher/Masquer la légende</button>
+    <div id="legend" style="display: none;">
+        <h2>Légende</h2>
+        <ul id="regions-list"></ul>
+    </div>
+    <div id="map" style="height: 600px;"></div>
+    <script src="{% static 'cartographie/toggle_departments.js' %}"></script>
+    <script>
+        const regions = {{ regions|safe }};
+        
+        // Initialiser la carte
+        const map = L.map('map').setView([46.603354, 1.888334], 6); // Coordonnées centrées sur la France
+
+        // Ajouter une couche de tuiles OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Ajouter des marqueurs pour chaque établissement
+        for (const region in regions) {
+            for (const department in regions[region]) {
+                for (const establishment of regions[region][department]) {
+                    const lat = establishment.latitude;
+                    const lon = establishment.longitude;
+
+                    const marker = L.marker([lat, lon]).addTo(map);
+                    marker.bindPopup(`<b>${establishment.name}</b><br>${department}, ${region}`);
+                }
+            }
+        }
+
+        // Remplir la légende
+        const regionsList = document.getElementById('regions-list');
+        for (const region in regions) {
+            const regionItem = document.createElement('li');
+            regionItem.textContent = region;
+
+            const departmentList = document.createElement('ul');
+            for (const department in regions[region]) {
+                const departmentItem = document.createElement('li');
+                departmentItem.textContent = department;
+
+                const establishmentList = document.createElement('ul');
+                for (const establishment of regions[region][department]) {
+                    const establishmentItem = document.createElement('li');
+                    establishmentItem.textContent = establishment.name;
+                    establishmentList.appendChild(establishmentItem);
+                }
+                departmentItem.appendChild(establishmentList);
+                departmentList.appendChild(departmentItem);
+            }
+            regionItem.appendChild(departmentList);
+            regionsList.appendChild(regionItem);
+        }
+
+        // Ajouter un gestionnaire d'événements pour le bouton de basculement de la légende
+        document.getElementById('toggle-legend').addEventListener('click', () => {
+            const legend = document.getElementById('legend');
+            if (legend.style.display === 'none') {
+                legend.style.display = 'block';
+            } else {
+                legend.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
